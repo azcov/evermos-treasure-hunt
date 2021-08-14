@@ -2,16 +2,21 @@
 
 ## How To Run
 
+Make sure you have installed Golang, If you haven't installed golang please [install](https://golang.org/doc/install) first.
+
+If you have installed Make (software):
+
 ```sh
 $ make play
 ```
-or
+
+If you haven't installed Make (software):
 
 ```sh
 $ go run main.go
 ```
 
-If you haven't install golang please [install](https://golang.org/doc/install) first.
+
 
 ## How To Play
 
