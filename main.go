@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
-	"time"
 )
 
 const (
@@ -18,9 +18,10 @@ const (
 // ---------------------- //
 How to Play :
 - Find the treasure ($)
-- Press "w" to move player (X) up
-- Press "s" to move player (X) down
-- Press "d" to move player (X) right
+- Input a number (n) to move player (X) up 
+- Input a number (n) to move player (X) down
+- Input a number (n) to move player (X) right
+
 - Press "r" to reset the game
 Play now? (y/n):`
 	TextColorRed    = "\033[31m%s\033[0m"
@@ -47,9 +48,10 @@ func clearConsole() {
 type TreasureHunt struct {
 	grid     Grid
 	player   Position
-	treasure Position
+	treasure []Position
 	msg      string
 	isFind   bool
+	step     int
 }
 
 func NewGame() TreasureHunt {
@@ -65,6 +67,7 @@ func NewGame() TreasureHunt {
 		player:   NewPlayer(),
 		treasure: NewTreasure(),
 		msg:      "Lets Find Treasure!",
+		step:     1,
 	}
 }
 func (t *TreasureHunt) clearMsg() {
@@ -76,61 +79,114 @@ func (t *TreasureHunt) PrintGrid() {
 	fmt.Println(t.msg)
 	for y := range t.grid {
 		for x := range t.grid[y] {
+			isTreasurePosition := false
 			if t.player.x == x && t.player.y == y {
 				fmt.Printf(TextColorBlue, "X ")
 				continue
 			}
-			if t.treasure.x == x && t.treasure.y == y {
-				fmt.Printf(TextColorYellow, "$ ")
-				continue
+			for z := range t.treasure {
+				if t.treasure[z].x == x && t.treasure[z].y == y {
+					fmt.Printf(TextColorYellow, "$ ")
+					isTreasurePosition = true
+					break
+				}
 			}
-			if t.grid[y][x] {
-				fmt.Printf(TextColorWhite, ". ")
-			} else {
-				fmt.Printf(TextColorRed, "# ")
+			if !isTreasurePosition {
+				if t.grid[y][x] {
+					fmt.Printf(TextColorWhite, ". ")
+				} else {
+					fmt.Printf(TextColorRed, "# ")
+				}
 			}
+
 		}
 		fmt.Println()
 	}
-}
-
-func (t *TreasureHunt) PlayerUp() {
-	newPos := Position{t.player.x, t.player.y - 1}
-	if !t.grid[newPos.y][newPos.x] {
-		t.msg = "cannot move up"
-	} else {
-		t.player = newPos
-		t.clearMsg()
-		t.isFindTreasure()
+	switch t.step {
+	case 1:
+		fmt.Print("input step for move north/up   : ")
+	case 2:
+		fmt.Print("input step for move right/east : ")
+	case 3:
+		fmt.Print("input step for move down/south : ")
 	}
 }
 
-func (t *TreasureHunt) PlayerDown() {
-	newPos := Position{t.player.x, t.player.y + 1}
-	if !t.grid[newPos.y][newPos.x] {
-		t.msg = "cannot move down"
+func (t *TreasureHunt) InputStep(cmd string) {
+	if strings.ToLower(cmd) != "r" {
+		steps, err := strconv.Atoi(cmd)
+		if err != nil {
+			t.msg = "input not allowed"
+		}
+		if steps > 0 {
+			switch t.step {
+			case 1:
+				t.PlayerUp(steps)
+				t.step++
+			case 2:
+				t.PlayerRight(steps)
+				t.step++
+			case 3:
+				t.PlayerDown(steps)
+				t.step++
+			}
+		} else {
+			t.msg = "input must be greater than 0"
+		}
 	} else {
-		t.player = newPos
-		t.clearMsg()
-		t.isFindTreasure()
+		*t = NewGame()
 	}
 }
 
-func (t *TreasureHunt) PlayerRight() {
-	newPos := Position{t.player.x + 1, t.player.y}
-	if !t.grid[newPos.y][newPos.x] {
-		t.msg = "cannot move right"
-	} else {
-		t.player = newPos
-		t.clearMsg()
-		t.isFindTreasure()
+func (t *TreasureHunt) PlayerUp(n int) {
+	for i := 0; i < n; i++ {
+		newPos := Position{t.player.x, t.player.y - 1}
+		if !t.grid[newPos.y][newPos.x] {
+			t.msg = "cannot move up again"
+			break
+		} else {
+			t.player = newPos
+			t.clearMsg()
+			t.isFindTreasure()
+		}
+	}
+}
+
+func (t *TreasureHunt) PlayerDown(n int) {
+	for i := 0; i < n; i++ {
+		newPos := Position{t.player.x, t.player.y + 1}
+		if !t.grid[newPos.y][newPos.x] {
+			t.msg = "cannot move down"
+		} else {
+			t.player = newPos
+			t.clearMsg()
+			t.isFindTreasure()
+		}
+	}
+}
+
+func (t *TreasureHunt) PlayerRight(n int) {
+	for i := 0; i < n; i++ {
+		newPos := Position{t.player.x + 1, t.player.y}
+		if !t.grid[newPos.y][newPos.x] {
+			t.msg = "cannot move right"
+		} else {
+			t.player = newPos
+			t.clearMsg()
+			t.isFindTreasure()
+		}
 	}
 }
 
 func (t *TreasureHunt) isFindTreasure() {
-	if t.player.x == t.treasure.x && t.player.y == t.treasure.y {
-		t.msg = "Yeppy! you find the Treasure!"
-		t.isFind = true
+	for i := range t.treasure {
+		if t.player.x == t.treasure[i].x && t.player.y == t.treasure[i].y {
+			t.msg = "Yeppy! you find the Treasure!"
+			t.isFind = true
+		}
+	}
+	if !t.isFind && t.step == 4 {
+		t.msg = "you failed to find the Treasure!"
 	}
 }
 
@@ -144,8 +200,12 @@ type Position struct {
 func NewPlayer() Position {
 	return Position{x: 1, y: 4}
 }
-func NewTreasure() Position {
-	return Position{x: 6, y: 4}
+func NewTreasure() []Position {
+	return []Position{
+		{x: 3, y: 4},
+		{x: 5, y: 4},
+		{x: 6, y: 2},
+	}
 }
 
 func main() {
@@ -165,7 +225,7 @@ func main() {
 		for {
 			treasureHunt.PrintGrid()
 
-			if treasureHunt.isFind {
+			if treasureHunt.isFind || treasureHunt.step == 4 {
 				fmt.Println("Game End")
 				break
 			}
@@ -177,20 +237,7 @@ func main() {
 			}
 			// convert CRLF to LF
 			cmd = strings.Replace(cmd, "\n", "", -1)
-
-			switch strings.ToLower(cmd) {
-			case "w":
-				treasureHunt.PlayerUp()
-			case "d":
-				treasureHunt.PlayerRight()
-			case "s":
-				treasureHunt.PlayerDown()
-			case "r":
-				treasureHunt = NewGame()
-			default:
-				fmt.Println(cmd)
-				time.Sleep(time.Duration(1 * time.Second))
-			}
+			treasureHunt.InputStep(cmd)
 		}
 	default:
 		break
